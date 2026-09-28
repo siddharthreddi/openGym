@@ -37,6 +37,7 @@ import { isFav, toggleFav, sortFavouritesFirst } from './lib/favourites.js'
 import { buildSessionEntries } from './lib/session-start.js'
 import { buildCombinedEntries, deriveSessionName } from './lib/session-merge.js'
 import { workoutsOn, backfillStart, backfillEnd, completeBackfill } from './lib/backfill.js'
+import { appleWatchReminderEnabled, appleWatchShortcutUrl, isIPhone } from './lib/apple-watch.js'
 
 const S = () => useStore.getState().S
 const update = (...a) => useStore.getState().update(...a)
@@ -1799,13 +1800,57 @@ export function WorkoutRow({ w, onClick }) {
 }
 
 /* ============================ workout lifecycle ============================ */
+function AppleWatchStartSheet({ onDone, close }) {
+  const st = useStore(s => s.S)
+  const continued = useRef(false)
+  const shortcut = isIPhone() ? appleWatchShortcutUrl(st.appleWatchShortcut) : null
+  const proceed = () => {
+    if (continued.current) return
+    continued.current = true
+    close()
+    onDone()
+  }
+  return <>
+    <div className="row between" style={{ marginBottom: 14 }}>
+      <h3 style={{ marginBottom: 0 }}>{t('Start your Apple Watch workout')}</h3>
+      <button className="iconbtn" aria-label={t('Cancel')} onClick={close}><Icon name="xmark" /></button>
+    </div>
+    <div className="muted" style={{ lineHeight: 1.6, marginBottom: 18 }}>
+      {t('Open Workout on your Apple Watch before you begin.')}
+      <ul style={{ paddingLeft: 22, margin: '10px 0' }}>
+        <li>{t('Lifting weights: Traditional Strength Training')}</li>
+        <li>{t('Treadmill walking: Indoor Walk')}</li>
+      </ul>
+      {t('Already recording? Continue below. End the Watch workout separately when you finish.')}
+    </div>
+    {shortcut && <>
+      <a className="btn tinted" href={shortcut} style={{ marginBottom: 8, textDecoration: 'none' }}>
+        <Icon name="bolt" />{t('Run Apple Watch shortcut')}
+      </a>
+      <div className="muted small" style={{ marginBottom: 16, lineHeight: 1.5 }}>
+        {t('After running the shortcut, return here and check that your Watch is recording. OpenGym cannot confirm its status.')}
+      </div>
+    </>}
+    <Button variant="primary" onClick={proceed}>{t('Watch is ready - start workout')}</Button>
+    <div style={{ height: 8 }} />
+    <Button variant="ghost" onClick={proceed}>{t('Start without Apple Watch')}</Button>
+    <div className="muted small" style={{ textAlign: 'center', marginTop: 12 }}>
+      {t('Change this reminder in Settings → During a workout.')}
+    </div>
+  </>
+}
+
 // `routineIds` accepts `string | string[] | null` — `[r.id]` for one routine,
 // `effectiveRoutineIds(...)` for today's planned session, `[]` / null for explicit freestyle.
 export function startFlow(routineIds) {
-  // The weigh-in is a setting (Settings → During a workout, issue #137): off goes straight
-  // into the session with no body weight on it, same as "Start without weighing in".
-  if (S().weighIn === false) { beginWorkout(routineIds, null); return }
-  bwSheet({ required: true, onDone: bw => beginWorkout(routineIds, bw) })
+  const afterWeighIn = bw => {
+    if (appleWatchReminderEnabled(S())) {
+      ui().openSheet(close => <AppleWatchStartSheet close={close}
+        onDone={() => beginWorkout(routineIds, bw)} />, { locked: true })
+    } else beginWorkout(routineIds, bw)
+  }
+  if (S().weighIn === false) { afterWeighIn(null); return }
+  bwSheet({ required: true, onDone: afterWeighIn })
 }
 export function beginWorkout(routineIds, bw) {
   const st = S()

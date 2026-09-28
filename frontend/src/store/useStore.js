@@ -78,6 +78,9 @@ export const DEF = {
   // card and the /checkin route; the saved gymCards stay so turning it back on restores them.
   // Defaults on; an older profile without the key reads as on (`!== false`).
   checkIn: true,
+  // null enables the reminder by default on iPhone, while an explicit user choice
+  // is respected everywhere. The optional shortcut must be installed on their phone.
+  appleWatchReminder: null, appleWatchShortcut: '',
   // Whether Start opens the quick weigh-in first (sheets.jsx startFlow, issue #137). Off starts
   // the session straight away; weight can still be logged from Home/Stats. Defaults on; an
   // older profile without the key reads as on (`!== false`).

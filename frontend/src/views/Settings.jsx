@@ -19,6 +19,7 @@ import { ConnectSheet } from './MobileOnboarding.jsx'
 import { starterPlanSheet, confirmSheet, importFromApp, importFromHevy, equipmentProfileSheet, menuSheet, askAddDeviceData } from '../sheets.jsx'
 import Icon from '../components/Icon.jsx'
 import { Section, Row, SelectRow, Switch, Segmented, Button, TextField } from '../components/ui.jsx'
+import { appleWatchReminderEnabled } from '../lib/apple-watch.js'
 
 export default function Settings() {
   const nav = useNavigate()
@@ -275,6 +276,20 @@ export default function Settings() {
         subtitle={t('Asks for your body weight when a workout starts. Off starts the session straight away.')}>
         <Switch checked={S.weighIn !== false} onChange={v => update(s => { s.weighIn = v })} />
       </Row>
+      <Row icon="bell" iconTint="var(--green)" title={t('Apple Watch reminder')}
+        subtitle={t('Remind me to start my Watch workout after weighing in.')}>
+        <Switch checked={appleWatchReminderEnabled(S)} onChange={v => update(s => { s.appleWatchReminder = v })} />
+      </Row>
+      {appleWatchReminderEnabled(S) && <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--sep)' }}>
+        <label htmlFor="apple-watch-shortcut" className="sect-t">{t('Apple Watch shortcut (optional)')}</label>
+        <TextField id="apple-watch-shortcut" value={S.appleWatchShortcut || ''} maxLength={120}
+          autoCapitalize="none" autoCorrect="off" spellCheck={false}
+          placeholder={t('Exact shortcut name')}
+          onChange={e => { const name = e.target.value; update(s => { s.appleWatchShortcut = name }) }} />
+        <div className="muted small" style={{ marginTop: 8, lineHeight: 1.5 }}>
+          {t('Create and test a workout shortcut in Shortcuts on your iPhone, then enter its exact name here. The reminder will offer a button to run it. Leave blank to start on your Watch manually.')}
+        </div>
+      </div>}
       {/* One exercise at a time (cards with Prev/Next), the whole session stacked as a
           scrollable list, or that list stripped to just names and set rows (compact).
           Legacy/unknown values read as cards. The running session can override this from
